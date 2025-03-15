@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+</head>
+<body>
+    <h2>Admin Panel</h2>
+    <form method="post">
+        <label>New Title:</label>
+        <input type="text" name="new_title" value="{{ title }}">
+        <button type="submit">Update Title</button>
+    </form>
+    
+    <form method="post">
+        <button type="submit" name="reset">Reset Counters</button>
+    </form>
+    
+    <a href="{{ url_for('logout') }}">Logout</a>
+</body>
+</html>

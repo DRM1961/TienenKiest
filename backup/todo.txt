@@ -1,0 +1,83 @@
+>>first update/upgrade
+sudo apt update
+sudo apt upgrade
+sudo apt install 
+>>install flask for web development
+sudo apt install python3-flask
+>>install mosquito MQTT broker to transfer data & images
+sudo apt install -y mosquitto mosquitto-clients
+>>make it start at boot
+sudo systemctl enable mosquitto.service
+mosquitto -v
+>>this shows version 2 and that only local connections are allowed
+
+>>extend to allow outside connections with authentication
+>> create (-c) a user
+sudo mosquitto_passwd -c /etc/mosquitto/passwd mqtt_admin
+>>enter (and repeat) a password: eg admin
+
+>>change the config file to add password file etc
+sudo nano /etc/mosquitto/mosquitto.conf
+>> your file should look as follows:
+per_listener_settings true
+pid_file /run/mosquitto/mosquitto.pid
+
+persistence true
+persistence_location /var/lib/mosquitto/
+
+log_dest file /var/log/mosquitto/mosquitto.log
+
+include_dir /etc/mosquitto/conf.d
+
+allow_anonymous false
+listener 1883
+password_file /etc/mosquitto/passwd
+>>press ctl-X, Y and enter to exit and save file
+
+NOT >> tell firewall that connections ovger port 1883 are allowed
+NOT sudo ufw allow 1883
+
+>>then restart mosquitto service
+
+sudo systemctl restart mosquitto
+>>check that it is running (exit with ctl-C
+sudo systemctl status mosquitto
+
+>>add a user
+sudo mosquitto_passwd /etc/mosquitto/passwd rpi6
+>>enter (and repeat) a password: eg client
+>>repeat for client dm
+sudo mosquitto_passwd /etc/mosquitto/passwd dm
+
+
+>>get the rpi address: hostname -I, or ifconfig
+
+
+
+>>now test
+>>in one terminal window enter:
+mosquitto_sub -d -t testTopic -u rpi6 -P client
+
+>>in another terminal window enter:
+mosquitto_pub -d -t  testTopic -m "hey you" -u mqtt_admin -P admin
+
+>> on another system linux, install mosquitto-clients
+>>then open terminal window and enter:
+
+mosquitto_pub -h 192.168.129.82 -t "testTopic" -m "remote from dm" -u dm  -P client
+
+
+>> subscribe to file
+mosquitto_sub -h 192.168.129.82 -t 'topicFile' -u dm -P client
+>>publish a file
+mosquitto_pub -d -h 192.168.129.82 -t  topicFile -f ~/dev/todo.txt -u mqtt_admin -P admin
+
+
+mosquitto_pub -h 192.168.129.82 -t "counter/1" -m "10"  -u dm -P client
+mosquitto_pub -h 192.168.129.82 -t "counter/2" -m "5" -u dm -P client
+
+
+pip install flask flask-socketio paho-mqtt eventlet
+  
+sudo apt install python3-flask-socketio
+sudo apt install python3-eventlet

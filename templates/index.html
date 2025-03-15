@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienen Kiest</title>
+    
+    <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+    <script type="text/javascript" src="{{url_for('static', filename='js/chart.js')}}"></script>
+    
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.js"></script> -->
+    <!-- <script src="https://cdn.socket.io/4.7.2/socket.io.js"></script> -->
+    <script type="text/javascript" src="{{url_for('static', filename='js/socket.io.js')}}"></script>
+    
+    <!-- <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script> -->
+    <script src="{{url_for('static', filename='js/chartjs-plugin-datalabels')}}"></script>
+
+
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .title {
+            text-align: center;
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 40px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            text-align: center;
+        }
+        img {
+            max-width: 150px;
+            height: auto;
+        }
+        h2 {
+            font-size: 20px;
+            font-weight: normal;
+        }
+        p {
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+    
+    <link rel="shortcut icon" href="#">
+</head>
+<body>
+    <div class="title">{{ title }}</div>
+    <div class="subtitle">Voor of Tegen?</div>
+    <div class="container">
+        <!-- Left Column -->
+        <div>
+            <h2>VOOR</h2>
+            <p id="counter1">0</p>
+            <img id="image1" src="/static/image_yes.jpg" alt="Image 1">
+        </div>
+        
+        <!-- Middle Column (Pie Chart) -->
+        <div>
+            <canvas id="myChart"></canvas>
+        </div>
+        
+        <!-- Right Column -->
+        <div>
+            <h2>TEGEN</h2>
+            <p id="counter2">0</p>
+            <img id="image2" src="/static/image_no.jpg" alt="Image 2">
+        </div>
+    </div>
+
+    <script>        
+        // Initialize WebSocket connection
+        let socket = io({ transports: ["websocket"], upgrade: false });
+        
+        var prev_counter1 = 0;
+        var prev_counter2 = 0;
+
+        // Initialize Pie Chart
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['voor', 'tegen'],
+                datasets: [{
+                    data: [0, 0],
+                    backgroundColor: ['#00FF00', '#FF0000'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                rotation: 180,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: { enabled: true },
+                    datalabels: {
+                        formatter: (value, ctx) => {
+                            let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                            let percentage = sum ? (value / sum * 100).toFixed(1) + "%" : "0%";
+                            return percentage;
+                        },
+                        color: '#fff',
+                        font: { weight: 'bold', size: 14 }
+                    }
+                }
+            },
+            plugins: [ChartDataLabels] // Enable the plugin
+        });
+
+        myChart.data.datasets[0].data = [1, 1];
+        myChart.update();
+
+        // Listen for WebSocket updates from Flask        
+        socket.on("connect", function() {
+            console.log("socket connected, asking for counters");
+            //socket.emit("test_event", "give me data");
+        });
+
+        socket.on("update_data", function(data) {
+            console.log("received update:", data);
+            counter1 = data.counters.counter1;
+            counter2 = data.counters.counter2;
+            if (prev_counter1 != counter1) {
+                console.log("counter 1 update", prev_counter1, counter1);
+                document.getElementById("counter1").innerText = counter1;
+                img = document.getElementById("image1");
+                img.src = "/static/image_yes.jpg?t=" + new Date().getTime();
+                prev_counter1 = counter1;
+            }
+            if (prev_counter2 != counter2) {
+                console.log("counter 2 update", prev_counter2, counter2);
+                document.getElementById("counter2").innerText = counter2;
+                img = document.getElementById("image2");
+                img.src = "/static/image_no.jpg?t=" + new Date().getTime();
+                prev_counter2 = counter2;
+            }
+            
+            // Update Pie Chart
+            myChart.data.datasets[0].data = [counter1, counter2];
+            myChart.update();
+        });
+        
+        socket.on("update_title", function(data) {
+            console.log("update title:", data);
+            document.querySelector(".title").innerText = data.title;
+        });
+        
+        socket.on("update_counters", function(data) {
+            console.log("update counters:", data);
+            document.getElementById("counter1").innerText = data.counter1;
+            document.getElementById("counter2").innerText = data.counter2;
+        });
+        
+        socket.on("disconnect", function() {
+            console.log("socket disconnected");
+        });
+        
+
+
+    </script>
+</body>
+</html>
