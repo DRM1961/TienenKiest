@@ -24,8 +24,16 @@ WantedBy=multi-user.target
 
 
 >>2: open browser window on startup
->>open de autostart file:
-sudo nano /etc/xdg/lxsession/LXDE-pi/autostart
+>>check if autostart file exists:
+ls /home/rpi6/.config/lxsession/LXDE-pi/autostart
+
+>>if the file is not listed then we copy it from elsewhere:
+mkdir /home/rpi6/.config/lxsession
+mkdir /home/rpi6/.config/lxsession/LXDE-pi
+cp /etc/xdg/lxsession/LXDE-pi/autostart /home/rpi6/.config/lxsession/LXDE-pi/
+
+>>now edit the autostart file:
+sudo nano /home/rpi6/.config/lxsession/LXDE-pi/autostart
 
 >>move cursor to end and add:
 @chromium-browser --kiosk http://localhost:5000
