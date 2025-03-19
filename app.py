@@ -6,18 +6,16 @@ import eventlet
 import eventlet.wsgi
 import threading
 import os
-
-eventlet.monkey_patch() #async compatibility
+import yaml
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = "your_secret_key"
-title = "Gratis koffie op marktdagen"
-TITLE_FILE = "title_file.txt"
-counter1 = 0
-counter2 = 0
-PASSWORD = "TienenKiest,2025" #admin password
 
+eventlet.monkey_patch() #async compatibility
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet") 
+
+CONFIG_FILE = "config.yaml"
+PASSWORD = "TienenKiest,2025" #admin password
 
 # Initialize counter values and image URLs
 data = {
@@ -28,13 +26,8 @@ data = {
     }
 }
 
-# MQTT Broker Configuration
-MQTT_BROKER = "192.168.129.82"
-MQTT_PORT = 1883
-MQTT_TOPICS = ["counter/1", "counter/2", "image/1", "image/2"]
-mqtt_user = "rpi6"
-mqtt_pw = "client"
-mqtt_client = mqtt.Client()
+config = None
+mqtt_client = None
 
 # socket.io event at startup
 @socketio.on("test_event")
@@ -42,21 +35,34 @@ def handle_test_event(data):
     print(f"received test event from browser: {data}")
     #socketio.emit("update_data", data)
 
-# Load title from file or set a default one
-def load_title():
-    if os.path.exists(TITLE_FILE):
-        with open(TITLE_FILE, "r") as file:
-            return file.read().strip()
-    return "Gratis koffie op marktdagen"
+# Load configuration from YAML
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r") as file:
+            return yaml.safe_load(file)
+    return {
+        "title": "Gratis koffie op marktdagen",
+        "counters": {"counter1": 0, "counter2": 0},
+        "mqtt": {"broker": "192.168.1.10",
+                 "port": 1883,
+                 "topic1": "counter1",
+                 "topic2": "counter2",
+                 "user": "rpi_display",
+                 "pw": "client"
+                 },
+    }
 
-def save_title(title):
-    with open(TITLE_FILE, "w") as file:
-        file.write(title)
+# Save configuration to YAML
+def save_config(config):
+    with open(CONFIG_FILE, "w") as file:
+        yaml.safe_dump(config, file)
 
 # MQTT Callbacks
 def on_connect(client, userdata, flags, rc):
     print("Connected to MQTT Broker with result code " + str(rc))
     socketio.emit("update_data", data)
+    
+    MQTT_TOPICS = ["counter/1", "counter/2", "image/1", "image/2"]
     for topic in MQTT_TOPICS:
         client.subscribe(topic)
 
@@ -88,10 +94,14 @@ def on_message(client, userdata, msg):
 def start_MQTT_client():
     # Initialize MQTT Client
     global mqtt_client
+    mqtt_client = mqtt.Client()
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
-    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
-    mqtt_client.username_pw_set(username=mqtt_user,password=mqtt_pw)
+    mqtt_client.connect(config["mqtt"]["broker"],
+                        config["mqtt"]["port"],
+                        60)
+    mqtt_client.username_pw_set(username=config["mqtt"]["user"],
+                                password=config["mqtt"]["pw"])
 
     # Run MQTT in a separate thread
     mqtt_thread = threading.Thread(target=mqtt_client.loop_forever)
@@ -100,7 +110,9 @@ def start_MQTT_client():
 
 @app.route('/')
 def index():
-    return render_template('index.html', title=title)
+    return render_template('index.html', title=config["title"])
+
+    #return render_template("index.html", title=config["title"], counter1=config["counters"]["counter1"], counter2=config["counters"]["counter2"])
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
@@ -108,20 +120,20 @@ def admin():
         return redirect(url_for("login"))
 
     if request.method == "POST":
-        global title, counter1, counter2
         if "reset" in request.form:
             mqtt_client.publish(topic="set_counter/1", payload="0", qos=0)
             mqtt_client.publish(topic="set_counter/2", payload="0", qos=0)
-            counter1 = 0
-            counter2 = 0
-            socketio.emit("update_counters", {"counter1": counter1, "counter2": counter2})
+            config["counters"]["counter1"] = 0
+            config["counters"]["counter2"] = 0
+            save_config(config)
+            socketio.emit("update_counters", config["counters"])
 
         if "new_title" in request.form:
-            title = request.form["new_title"]
-            save_title(title)
-            socketio.emit("update_title", {"title": title})
+            config["title"] = request.form["new_title"]
+            save_config(config)
+            socketio.emit("update_title", {"title": config["title"]})
             
-    return render_template("admin.html", title=title)
+    return render_template("admin.html", title=config["title"])
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -137,7 +149,7 @@ def logout():
     return redirect(url_for("login"))
 
 if __name__ == '__main__':
-    title = load_title()
+    config = load_config()
     start_MQTT_client()
     socketio.run(app, debug=True, host="0.0.0.0", port=5000)
 

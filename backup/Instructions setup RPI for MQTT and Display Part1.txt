@@ -1,0 +1,94 @@
+Instructions for the RPI used as MQTT broker and Display (see RPI for 2 choices below) PART1
+
+>>first update/upgrade
+sudo apt update
+sudo apt upgrade
+sudo apt install 
+
+>>install flask and mqtt libraries for web development
+sudo apt install python3-flask
+sudo apt install python3-flask-socketio
+sudo apt install python3-paho-mqtt
+sudo apt install python3-eventlet
+
+>>install mosquito MQTT broker to transfer data & images
+sudo apt install -y mosquitto mosquitto-clients
+
+>>make it start at boot
+sudo systemctl enable mosquitto.service
+
+mosquitto -v
+>>this shows version 2 and that only local connections are allowed
+
+>>extend to allow outside connections with authentication
+>> first time, we add a -c option to create a file with user-names
+sudo mosquitto_passwd -c /etc/mosquitto/passwd rpi_display
+>>enter (and repeat) a password: eg client
+
+>>edit the mosquitto config file to add the password filename and port
+>> (any text editor will do, but use sudo otherwise saving the file is not allowed)
+sudo nano /etc/mosquitto/mosquitto.conf
+
+>>go to the end of the file and add these lines (if not yet present)
+allow_anonymous false
+listener 1883
+password_file /etc/mosquitto/passwd
+
+>>your file content should look as follows:
+per_listener_settings true
+pid_file /run/mosquitto/mosquitto.pid
+persistence true
+persistence_location /var/lib/mosquitto/
+log_dest file /var/log/mosquitto/mosquitto.log
+include_dir /etc/mosquitto/conf.d
+allow_anonymous false
+listener 1883
+password_file /etc/mosquitto/passwd
+
+>>then restart mosquitto service
+sudo systemctl restart mosquitto
+
+>>check that it is running (exit with ctl-C)
+sudo systemctl status mosquitto
+
+>>now add 2 users: rpi_voor, rpi_tegen
+>>it will prompt for a password: use the same password: client 
+sudo mosquitto_passwd /etc/mosquitto/passwd rpi_voor
+sudo mosquitto_passwd /etc/mosquitto/passwd rpi_tegen
+
+>>TEST MQTT ON LOCAL SYSTEM
+>>get the rpi address which is in the form xxx.xxx.xxx.xxx
+hostname -I
+>>let's say the result is 192.168.129.82, we'll use it later
+
+>>open a terminal window and enter:
+mosquitto_sub -d -t testTopic -u rpi_display -P client
+
+>>in another terminal window enter:
+mosquitto_pub -d -t  testTopic -m "ik ben rpi_voor" -u rpi_voor -P client
+>>in the first terminal window the message should appear
+>>in another terminal window enter:
+mosquitto_pub -d -t  testTopic -m "ik ben rpi_tegen" -u rpi_tegen -P client
+>>in the first terminal window the message should appear
+
+
+>>TEST MQTT ON OTHER SYSTEM
+>>on both RPIs for the tubes, install mosquitto-clients
+sudo apt install mosquitto-clients
+
+>>on rpi1, open a terminal window and enter on one:
+mosquitto_pub -h 192.168.129.82 -t "testTopic" -m "ik ben remote rpi_voor" -u rpi_voor -P client
+
+>>do the same for rpi2
+mosquitto_pub -h 192.168.129.82 -t "testTopic" -m "ik ben remote rpi_tegen" -u rpi_tegen -P client
+
+>>in both cases, the message should appear in the terminal window of the main rpi.
+
+
+>> subscribe to file
+mosquitto_sub -h 192.168.129.82 -t testFile -u rpi_display -P client
+>>publish a file
+mosquitto_pub -d -h 192.168.129.82 -t  testFile -f ~/dev/todo.txt -u rpi_voor -P client
+
+
+  

@@ -1,0 +1,11 @@
+counters:
+  counter1: 0
+  counter2: 0
+mqtt:
+  broker: 192.168.129.82
+  port: 1883
+  pw: client
+  topic1: counter1
+  topic2: counter2
+  user: rpi_display
+title: Gratis koffie op weekdagen
