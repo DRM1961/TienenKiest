@@ -1,0 +1,36 @@
+Instructions for the RPI used as MQTT broker and Display PART2
+
+>>1: make app.py start at boot time
+>>first make a service file:
+sudo nano /etc/systemd/system/mqtt_dashboard.service
+>> paste below content but change /home/rpi6/dev/TienenKiest to your development directory path
+>> and change the user from rpi6 to your username
+[Unit]
+Description=MQTT Dashboard Service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/rpi6/dev/TienenKiest/app.py
+WorkingDirectory=/home/rpi6/dev/TienenKiest
+Restart=always
+User=rpi6 
+
+[Install]
+WantedBy=multi-user.target
+
+>> (to save, press CTRL-X, Y and then Enter)
+
+>>enable and start the service
+
+
+>>2: open browser window on startup
+>>open de autostart file:
+sudo nano /etc/xdg/lxsession/LXDE-pi/autostart
+
+>>move cursor to end and add:
+@chromium-browser --kiosk http://localhost:5000
+
+
+>> (to save, press CTRL-X, Y and then Enter)
+
+>> reboot to verify changes are ok
