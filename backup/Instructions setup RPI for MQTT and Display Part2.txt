@@ -1,44 +1,26 @@
 Instructions for the RPI used as MQTT broker and Display PART2
 
 >>1: make app.py start at boot time
->>first make a service file:
-sudo nano /etc/systemd/system/mqtt_dashboard.service
->> paste below content but change /home/rpi6/dev/TienenKiest to your development directory path
->> and change the user from rpi6 to your username
-[Unit]
-Description=MQTT Dashboard Service
-After=network.target
-
-[Service]
-ExecStart=/usr/bin/python3 /home/rpi6/dev/TienenKiest/app.py
-WorkingDirectory=/home/rpi6/dev/TienenKiest
-Restart=always
-User=rpi6 
-
-[Install]
-WantedBy=multi-user.target
-
->> (to save, press CTRL-X, Y and then Enter)
+>> first edit /home/rpi6/dev/TienenKiest/backup/mqtt_dashboard.service:
+>> line with ExecStart=/usr/bin/python3 /home/rpi6/dev/TienenKiest/app.py
+>>> /home/rpi6/dev/TienenKiest/app.py change "rpi6" and "/dev/TienenKiest" to the directory where app.py is located
+>> also change lines for working directory and user 
+>> then copy the file to the services directory
+sudo cp /home/rpi6/dev/TienenKiest/backup/mqtt_dashboard.service /etc/systemd/system/mqtt_dashboard.service
 
 >>enable and start the service
+sudo systemctl enable mqtt_dashboard
+sudo systemctl start mqtt_dashboard
+>>verify status is running
+sudo systemctl status mqtt_dashboard
+
 
 
 >>2: open browser window on startup
->>check if autostart file exists:
-ls /home/rpi6/.config/lxsession/LXDE-pi/autostart
+>>make an autostart directory (again, change rpi6 and dev/TienenKiest to your directory:
+mkdir -p /home/rpi6/.config/autostart
+>>copy file /home/rpi6/dev/TienenKiest/backup/TienenKiest.desktop
+cp /home/rpi6/dev/TienenKiest/backup/TienenKiest.desktop /home/rpi6/.config/autostart/TienenKiest.desktop
 
->>if the file is not listed then we copy it from elsewhere:
-mkdir /home/rpi6/.config/lxsession
-mkdir /home/rpi6/.config/lxsession/LXDE-pi
-cp /etc/xdg/lxsession/LXDE-pi/autostart /home/rpi6/.config/lxsession/LXDE-pi/
-
->>now edit the autostart file:
-sudo nano /home/rpi6/.config/lxsession/LXDE-pi/autostart
-
->>move cursor to end and add:
-@chromium-browser --kiosk http://localhost:5000
-
-
->> (to save, press CTRL-X, Y and then Enter)
-
->> reboot to verify changes are ok
+>>logout, login will start the browser
+>> exit the browser with ALT-F4

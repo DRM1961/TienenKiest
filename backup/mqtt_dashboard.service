@@ -1,0 +1,13 @@
+[Unit]
+Description=MQTT Dashboard Service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/rpi6/dev/TienenKiest/app.py
+WorkingDirectory=/home/rpi6/dev/TienenKiest
+Restart=always
+User=rpi6
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=TienenKiest
+Exec=chromium-browser --kiosk --user-data-dir=/home/$USER/.config/chromium2 --enable-features=OverlayScrollbar,OverlayScrollbarFlashAfterAnyScrollUpdate,OverlayScrollbarFlashWhenMouseEnter --app=http://localhost:5000 &
+Icon=/home/rpi6/dev/TienenKiest/templates/favicon.ico
+Terminal=false
+Type=Application
+X-GNOME-Autostart-enabled=true
+Hidden=false
+NoDisplay=false
