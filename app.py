@@ -60,7 +60,7 @@ def save_config(config):
 # MQTT Callbacks
 def on_connect(client, userdata, flags, rc):
     print("Connected to MQTT Broker with result code " + str(rc))
-    socketio.emit("update_data", data)
+    #socketio.emit("update_data", data)
     
     MQTT_TOPICS = ["counter/1", "counter/2", "image/1", "image/2"]
     for topic in MQTT_TOPICS:
